@@ -1,0 +1,48 @@
+plugins {
+    id 'fabric-loom' version '1.6-SNAPSHOT'
+    id 'maven-publish'
+}
+
+def props = new Properties()
+file('../../../gradle.properties').withInputStream { props.load(it) }
+props.each { key, value -> ext.set(key.toString(), value) }
+
+group = mod_group_id
+version = mod_version
+base.archivesName = 'immersive-weathering-tweaks-fabric'
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+repositories { mavenCentral() }
+
+sourceSets {
+    main {
+        java.srcDirs = ['src/main/java', '../../../common/src/main/java']
+        resources.srcDirs = ['src/main/resources']
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+    modImplementation files('../../../libs/immersive_weathering-1.20.1-2.0.5-fabric.jar')
+    modImplementation files('../../../libs/quantified-api-fabric-1.20.1-2.1.0.jar')
+}
+
+processResources {
+    def replace = [mod_id: mod_id, mod_name: mod_name, mod_version: mod_version, mod_license: mod_license,
+                   mod_authors: mod_authors, mod_description: mod_description, minecraft_version: minecraft_version,
+                   fabric_loader_version: fabric_loader_version, immersive_weathering_version: immersive_weathering_version,
+                   quantified_api_version: quantified_api_version]
+    inputs.properties(replace)
+    filesMatching('fabric.mod.json') { expand(replace) }
+}
+
+tasks.named('jar', Jar).configure {
+    archiveFileName = "immersive-weathering-tweaks-fabric-${project.version}.jar"
+}
+
+tasks.named('remapJar').configure {
+    archiveFileName = "immersive-weathering-tweaks-fabric-${project.version}.jar"
+}

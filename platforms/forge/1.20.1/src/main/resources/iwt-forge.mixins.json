@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.admany.iwt.mixin.forge",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": ["BlockGrowthHandlerForgeMixin", "AreaCheckForgeMixin"],
+  "injectors": { "defaultRequire": 1 }
+}

@@ -1,0 +1,100 @@
+plugins {
+    id 'java'
+}
+
+group = providers.gradleProperty('mod_group_id').get()
+version = providers.gradleProperty('mod_version').get()
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main.java.srcDirs = ['common/src/main/java']
+    test.java.srcDirs = ['common/src/test/java']
+}
+
+dependencies {
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+    testImplementation 'org.openjdk.jol:jol-core:0.17'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+def nestedBuild = { String name, String directory, String taskName ->
+    tasks.register(name, GradleBuild) {
+        group = 'build'
+        buildName = name
+        dir = file(directory)
+        tasks = [taskName]
+    }
+}
+
+def forgeReleaseJar = "immersive-weathering-tweaks-forge-${project.version}.jar"
+def fabricReleaseJar = "immersive-weathering-tweaks-fabric-${project.version}.jar"
+def omniReleaseJar = "immersive-weathering-tweaks-${project.version}.jar"
+
+nestedBuild('buildForge1201', 'platforms/forge/1.20.1', 'jar')
+nestedBuild('buildFabric1201', 'platforms/fabric/1.20.1', 'remapJar')
+
+tasks.register('assembleForgeRelease', Copy) {
+    group = 'build'
+    description = 'Builds and publishes the Forge release jar to libs.'
+    dependsOn 'buildForge1201'
+    from("platforms/forge/1.20.1/build/libs/$forgeReleaseJar")
+    into layout.buildDirectory.dir('libs')
+}
+
+tasks.register('assembleFabricRelease', Copy) {
+    group = 'build'
+    description = 'Builds and publishes the Fabric release jar to libs.'
+    dependsOn 'buildFabric1201'
+    from("platforms/fabric/1.20.1/build/libs/$fabricReleaseJar")
+    into layout.buildDirectory.dir('libs')
+}
+
+tasks.register('assembleOmniRelease', Jar) {
+    group = 'build'
+    description = 'Builds the combined Forge and Fabric release jar to build/libs.'
+    dependsOn 'buildForge1201', 'buildFabric1201'
+    archiveFileName = omniReleaseJar
+    destinationDirectory = layout.buildDirectory.dir('libs')
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+    def forgeJar = file("platforms/forge/1.20.1/build/libs/$forgeReleaseJar")
+    def fabricJar = file("platforms/fabric/1.20.1/build/libs/$fabricReleaseJar")
+
+    from({ zipTree(fabricJar) }) {
+        exclude 'META-INF/MANIFEST.MF'
+    }
+    from({ zipTree(forgeJar) }) {
+        exclude 'META-INF/MANIFEST.MF'
+        include 'META-INF/mods.toml'
+        include 'iwt-forge.mixins.json'
+        include 'org/admany/iwt/forge/**'
+        include 'org/admany/iwt/mixin/forge/**'
+    }
+    manifest {
+        attributes(
+            'Implementation-Title': 'immersive-weathering-tweaks-omni',
+            'Implementation-Version': project.version,
+            'MixinConfigs': 'iwt-forge.mixins.json'
+        )
+    }
+}
+
+tasks.register('assembleReleaseJars') {
+    group = 'build'
+    description = 'Builds Forge, Fabric, and combined release jars.'
+    dependsOn 'assembleForgeRelease', 'assembleFabricRelease', 'assembleOmniRelease'
+}
+
+tasks.named('build') {
+    dependsOn 'test', 'assembleReleaseJars'
+}

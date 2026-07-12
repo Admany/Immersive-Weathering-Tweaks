@@ -1,0 +1,56 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+def props = new Properties()
+file('../../../gradle.properties').withInputStream { props.load(it) }
+props.each { key, value -> ext.set(key.toString(), value) }
+
+group = mod_group_id
+version = mod_version
+base.archivesName = "immersive-weathering-tweaks-forge"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: minecraft_version
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            mods { "${mod_id}" { source sourceSets.main } }
+        }
+        client { }
+        server { args '--nogui' }
+    }
+}
+
+repositories { mavenCentral() }
+
+sourceSets {
+    main {
+        java.srcDirs = ['src/main/java', '../../../common/src/main/java']
+        resources.srcDirs = ['src/main/resources']
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation fg.deobf(files('../../../libs/immersive_weathering-1.20.1-2.0.5-forge.jar'))
+    implementation fg.deobf(files('../../../libs/moonlight-1.20-2.13.79-forge.jar'))
+    implementation fg.deobf(files('../../../libs/quantified-api-omni-2.1.0.jar'))
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    def replace = [mod_id: mod_id, mod_name: mod_name, mod_version: mod_version, mod_license: mod_license,
+                   mod_authors: mod_authors, mod_description: mod_description, minecraft_version: minecraft_version,
+                   immersive_weathering_version: immersive_weathering_version, quantified_api_version: quantified_api_version]
+    inputs.properties(replace)
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) { expand(replace) }
+}
+
+tasks.named('jar', Jar).configure {
+    archiveFileName = "immersive-weathering-tweaks-forge-${project.version}.jar"
+    manifest.attributes('MixinConfigs': 'iwt-forge.mixins.json')
+    finalizedBy 'reobfJar'
+}

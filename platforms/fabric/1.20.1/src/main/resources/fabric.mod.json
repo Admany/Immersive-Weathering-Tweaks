@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "${mod_name}",
+  "icon": "iwt.png",
+  "description": "${mod_description}",
+  "authors": ["${mod_authors}"],
+  "license": "${mod_license}",
+  "environment": "*",
+  "entrypoints": { "main": ["org.admany.iwt.fabric.IwtFabric"] },
+  "mixins": ["iwt-fabric.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "minecraft": "${minecraft_version}",
+    "fabric-api": ">=0.92.6+1.20.1",
+    "immersive_weathering": ">=${immersive_weathering_version}",
+    "quantified": ">=${quantified_api_version}"
+  }
+}
