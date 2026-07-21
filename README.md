@@ -66,9 +66,9 @@ So yh, it keeps a few kilobytes around to avoid creating hundreds of megabytes o
 
 Release jars are written to `build/libs/`:
 
-- `immersive-weathering-tweaks-forge-1.0.0.jar`
-- `immersive-weathering-tweaks-fabric-1.0.0.jar`
-- `immersive-weathering-tweaks-1.0.0.jar` (combined omni jar)
+- `immersive-weathering-tweaks-forge-1.1.0.jar`
+- `immersive-weathering-tweaks-fabric-1.1.0.jar`
+- `immersive-weathering-tweaks-1.1.0.jar` (combined omni jar)
 
 Build-time mod dependencies are project-local under `libs/`; the Gradle scripts contain no machine-specific dependency paths.
 

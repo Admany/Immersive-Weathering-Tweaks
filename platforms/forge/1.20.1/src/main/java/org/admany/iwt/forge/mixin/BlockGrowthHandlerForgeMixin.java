@@ -41,11 +41,15 @@ public abstract class BlockGrowthHandlerForgeMixin {
             ci.cancel();
             return;
         }
+        iwt$runGrowths(source, state, level, pos);
+        ci.cancel();
+    }
+
+    private static void iwt$runGrowths(TickSource source, BlockState state, ServerLevel level, BlockPos pos) {
         Set<IBlockGrowth> universal = UNIVERSAL_GROWTHS.get(source);
         Map<Block, Set<IBlockGrowth>> byBlock = GROWTH_FOR_BLOCK.get(source);
         Set<IBlockGrowth> blockGrowths = byBlock == null ? null : byBlock.get(state.getBlock());
         if ((universal == null || universal.isEmpty()) && (blockGrowths == null || blockGrowths.isEmpty())) {
-            ci.cancel();
             return;
         }
         Supplier<Holder<Biome>> biome = Suppliers.memoize(() -> level.getBiome(pos));
@@ -55,7 +59,6 @@ public abstract class BlockGrowthHandlerForgeMixin {
         if (blockGrowths != null) {
             for (IBlockGrowth growth : blockGrowths) growth.tryGrowing(pos, state, level, biome);
         }
-        ci.cancel();
     }
 
     @Inject(method = "performSkyAccessTick", at = @At("HEAD"), cancellable = true, remap = false)
@@ -75,13 +78,13 @@ public abstract class BlockGrowthHandlerForgeMixin {
 
                 if (!raining) {
                     if (iwt$hasGrowth(TickSource.CLEAR_SKY, block)) {
-                        BlockGrowthHandler.tickBlock(TickSource.CLEAR_SKY, state, level, target.immutable());
+                        iwt$runGrowths(TickSource.CLEAR_SKY, state, level, target.immutable());
                     }
                 } else if (iwt$hasGrowth(TickSource.RAIN, block) || iwt$hasGrowth(TickSource.SNOW, block)) {
                     Biome.Precipitation precipitation = level.getBiome(target).value().getPrecipitationAt(target);
                     TickSource source = precipitation == Biome.Precipitation.SNOW ? TickSource.SNOW : TickSource.RAIN;
                     if (iwt$hasGrowth(source, block)) {
-                        BlockGrowthHandler.tickBlock(source, state, level, target.immutable());
+                        iwt$runGrowths(source, state, level, target.immutable());
                     }
                 }
             }

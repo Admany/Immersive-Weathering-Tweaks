@@ -4,7 +4,6 @@ import com.ordana.immersive_weathering.data.block_growths.growths.ConfigurableBl
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderSet;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,7 +18,6 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Optional;
-import java.util.Random;
 
 @Pseudo
 @Mixin(targets = "com.ordana.immersive_weathering.data.block_growths.area_condition.AreaCheck", remap = false)
@@ -37,7 +35,7 @@ public abstract class AreaCheckForgeMixin {
     @Inject(method = "test", at = @At("HEAD"), cancellable = true, remap = false)
     private void iwt$testWithoutAllocations(BlockPos originalPos, Level level, ConfigurableBlockGrowth config,
                                             CallbackInfoReturnable<Boolean> cir) {
-        BlockPos pos = yOffset.map(originalPos::above).orElse(originalPos);
+        BlockPos pos = yOffset.isPresent() ? originalPos.above(yOffset.get()) : originalPos;
         AreaCheckForgeScratch scratch = IWT_SCRATCH.get();
         int size = iwt$fillOffsets(scratch, rX, rY, rZ);
         scratch.random.setSeed(Mth.getSeed(pos));
@@ -47,16 +45,16 @@ public abstract class AreaCheckForgeMixin {
         }
         int count = 0;
         boolean hasRequirement = mustHavePredicate.isEmpty();
-        RandomSource ruleRandom = RandomSource.create(Mth.getSeed(pos));
+        scratch.ruleRandom.setSeed(Mth.getSeed(pos));
         for (int i = 0; i < size; i++) {
             long offset = scratch.offsets[i];
             scratch.cursor.set(pos.getX() + unpackX(offset), pos.getY() + unpackY(offset), pos.getZ() + unpackZ(offset));
             BlockState state = level.getBlockState(scratch.cursor);
             if (config.getPossibleBlocks().contains(state.getBlock()) || (extraIncluded.isPresent() && state.is(extraIncluded.get()))) count++;
-            if (!hasRequirement && mustHavePredicate.get().test(state, ruleRandom)) {
+            if (!hasRequirement && mustHavePredicate.get().test(state, scratch.ruleRandom)) {
                 hasRequirement = true;
                 if (requiredAmount == -1) { cir.setReturnValue(true); return; }
-            } else if (mustNotHavePredicate.isPresent() && mustNotHavePredicate.get().test(state, ruleRandom)) {
+            } else if (mustNotHavePredicate.isPresent() && mustNotHavePredicate.get().test(state, scratch.ruleRandom)) {
                 cir.setReturnValue(false); return;
             }
             if (count >= requiredAmount) { cir.setReturnValue(false); return; }
